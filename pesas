@@ -1,0 +1,198 @@
+#!/bin/bash
+ls *.log | tr '.' ' ' | awk '{print $1}' > name
+
+for scanname in $(cat name | awk '{print $1}')
+do
+########################extract PES
+grep "     Eigenvalues --  " $scanname.log | awk '{print $3}' | sed 's/-/ -/g' | tr '\n' ' ' | sed 's/  / /g' | tr ' ' '\n' > $scanname.ff
+tail -n +2 $scanname.ff > $scanname.f
+cat $scanname.f | split -l 13 -a 1
+
+rm $scanname.ff $scanname.f
+
+for i in x*; do tr '\n' ' ' < $i > 'x'$i ; done 
+
+echo " " > ENTER.txt
+
+for i in xx* ; do cat $i ENTER.txt >> 'z'$i ; done 
+
+##################################################FLIP EVEN LINES
+#a
+cat zxxb | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }' > zzxxb
+#c
+cat zxxd | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }' > zzxxd
+#e
+cat zxxf | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }' > zzxxf
+#g
+cat zxxh | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }' > zzxxh
+#i
+cat zxxj | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }' > zzxxj
+#k
+cat zxxl | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }' > zzxxl
+#m
+#cat zxxn | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }' 
+#o
+#cat zxxp | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }'
+#q
+#cat zxxr | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }'
+
+mv zzxxb zxxb
+mv zzxxd zxxd
+mv zzxxf zxxf
+mv zzxxh zxxh
+mv zzxxj zxxj
+mv zzxxl zxxl
+
+
+##################################################CREATE_PES_TABLE
+for i in zxx* ; do  cat $i  ; done > PES_TABLE.txt
+
+n=13
+head -n 1 PES_TABLE.txt > line_up
+tail -n 1 PES_TABLE.txt > line_down
+cat PES_TABLE.txt | awk '{print $1}' > colomn_left
+cat PES_TABLE.txt | awk '{print $'$n'}' > colomn_right 
+
+paste colomn_left PES_TABLE.txt colomn_right > PES_TABLE_NEW.txt
+
+sed -i 's/\t/ /' PES_TABLE_NEW.txt
+sed -i 's/  / /' PES_TABLE_NEW.txt
+sed -i 's/  / /' PES_TABLE_NEW.txt
+##################################################
+echo -0.0000001 > zero.txt
+cat zero.txt line_up zero.txt > line_up_special
+cat line_up_special | tr '\n' ' '  > line_up_special_NEW
+sed -i 's/  / /' line_up_special_NEW 
+sed -i 's/  / /' line_up_special_NEW 
+
+cat zero.txt line_down zero.txt > line_down_special
+cat line_down_special | tr '\n' ' '  > line_down_special_NEW
+sed -i 's/  / /' line_down_special_NEW 
+sed -i 's/  / /' line_down_special_NEW 
+##################################################
+echo " " > ENTER.txt
+cat line_up_special_NEW ENTER.txt PES_TABLE_NEW.txt line_down_special_NEW > PES_TABLE_NEW_NEW.txt
+sed -i 's/\t/ /' PES_TABLE_NEW_NEW.txt
+sed -i 's/  / /' PES_TABLE_NEW_NEW.txt
+sed -i 's/  / /' PES_TABLE_NEW_NEW.txt
+##################################################CLEAN
+rm -f zzxx* zxx* xx* x* 
+rm -f ENTER.txt
+rm -f colomn_left line_down line_down_special_NEW line_up_special PES_TABLE.txt colomn_right line_down_special line_up line_up_special_NEW PES_TABLE_NEW.txt zero.txt
+##################################################
+
+echo "Searching for local minima on PES:"
+
+k=0
+county=0
+countn=0
+
+for c_ in {2..14}   # colomn 
+do
+
+for r_ in {2..14}   # row stroka
+do
+
+
+ru=$(($r_+1))
+rd=$(($r_-1))
+cu=$(($c_+1))
+cd=$(($c_-1))
+
+k=$(($k+1))
+echo Structure Number $k
+
+cell_r_c_=`cat PES_TABLE_NEW_NEW.txt | head -$r_ | tail -1 | awk '{print $'$c_'}'`
+cell_rdcd=`cat PES_TABLE_NEW_NEW.txt | head -$rd | tail -1 | awk '{print $'$cd'}'`
+cell_rdc_=`cat PES_TABLE_NEW_NEW.txt | head -$rd | tail -1 | awk '{print $'$c_'}'`
+cell_rdcu=`cat PES_TABLE_NEW_NEW.txt | head -$rd | tail -1 | awk '{print $'$cu'}'`
+cell_r_cu=`cat PES_TABLE_NEW_NEW.txt | head -$r_ | tail -1 | awk '{print $'$cu'}'`
+cell_rucu=`cat PES_TABLE_NEW_NEW.txt | head -$ru | tail -1 | awk '{print $'$cu'}'`
+cell_ruc_=`cat PES_TABLE_NEW_NEW.txt | head -$ru | tail -1 | awk '{print $'$c_'}'`
+cell_rucd=`cat PES_TABLE_NEW_NEW.txt | head -$ru | tail -1 | awk '{print $'$cd'}'`
+cell_r_cd=`cat PES_TABLE_NEW_NEW.txt | head -$r_ | tail -1 | awk '{print $'$cd'}'`
+
+comparison_cell_rdcd=`echo "$cell_r_c_ <= $cell_rdcd" | bc`
+comparison_cell_rdc_=`echo "$cell_r_c_ <= $cell_rdc_" | bc`
+comparison_cell_rdcu=`echo "$cell_r_c_ <= $cell_rdcu" | bc`
+comparison_cell_r_cu=`echo "$cell_r_c_ <= $cell_r_cu" | bc`
+comparison_cell_rucu=`echo "$cell_r_c_ <= $cell_rucu" | bc`
+comparison_cell_ruc_=`echo "$cell_r_c_ <= $cell_ruc_" | bc`
+comparison_cell_rucd=`echo "$cell_r_c_ <= $cell_rucd" | bc`
+comparison_cell_r_cd=`echo "$cell_r_c_ <= $cell_r_cd" | bc`
+
+echo $comparison_cell_rdcd $cell_r_c_ "<=" $cell_rdcd
+echo $comparison_cell_rdc_ $cell_r_c_ "<=" $cell_rdc_
+echo $comparison_cell_rdcu $cell_r_c_ "<=" $cell_rdcu
+echo $comparison_cell_r_cu $cell_r_c_ "<=" $cell_r_cu
+echo $comparison_cell_rucu $cell_r_c_ "<=" $cell_rucu
+echo $comparison_cell_ruc_ $cell_r_c_ "<=" $cell_ruc_
+echo $comparison_cell_rucd $cell_r_c_ "<=" $cell_rucd
+echo $comparison_cell_r_cd $cell_r_c_ "<=" $cell_r_cd
+
+
+##################################################check criteria
+if 
+(( $comparison_cell_rdcd )) && 
+(( $comparison_cell_rdc_ )) && 
+(( $comparison_cell_rdcu )) && 
+(( $comparison_cell_r_cu )) && 
+(( $comparison_cell_rucu )) && 
+(( $comparison_cell_ruc_ )) && 
+(( $comparison_cell_rucd )) && 
+(( $comparison_cell_r_cd )); then
+#if (( $(echo "$cell_r_c_ <= $cell_rdcd" | bc -l) )); then
+echo "yes!"
+county=$(($county+1))
+echo $k >> Possible_Minima        # in gaussian numbers are NOT RIGHT 
+#cat right_numbers.txt | head -$r_ | tail -1 | awk '{print $'$c_'}' >> Possible_Minima
+else
+echo "no!"
+countn=$(($countn+1))
+fi
+##################################################check criteria
+
+done
+done
+
+echo 'county='$county
+echo 'countn='$countn
+
+
+##################################################delete repeating 
+sed -i 's/169//g' Possible_Minima
+
+##################################################extract XYZ
+locmin_count=0
+
+
+for locmin_number in $(cat Possible_Minima | awk '{print $1}')
+do
+locmin_count=$(($locmin_count+1))
+
+locmin_line_str=`grep -n "scan point" $scanname.log | grep " "$locmin_number" out of   169" | tail -1 | awk '{print $1}' | sed 's/://g'`
+#echo $locmin_line_str
+
+next_locmin_number=$(($locmin_number+1))
+next_locmin_line_str=`grep -n "scan point" $scanname.log | grep " "$next_locmin_number" out of   169" | head -1 | awk '{print $1}' | sed 's/://g'`
+
+
+sed -n ''$locmin_line_str','$next_locmin_line_str'p' $scanname.log > "$scanname"_"$locmin_number".output
+
+
+Anum=`cat "$scanname"_"$locmin_number".output |grep -H "Rotational constants (GHZ):   " -B 2 | tail -7 | awk '{print $3}'| head -1`; echo "Number of atoms in "$scanname"_"$locmin_number".output is $Anum";
+b=$(($Anum + 5)); 
+c=$(($Anum + 4)); 
+#echo $Anum
+
+grep " Largest concise Abelian subgroup " "$scanname"_"$locmin_number".output -A $b | tail -$Anum | awk '{print $2,$4,$5,$6}' > "$scanname"_"$locmin_count".xyz
+
+rm -f "$scanname"_"$locmin_number".output
+done
+##################################################Important to remove
+rm -f  Possible_Minima PES_TABLE_NEW_NEW.txt 
+done
+
+rm -f name
+exit
+
